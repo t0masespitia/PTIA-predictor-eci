@@ -22,7 +22,7 @@ train_path = str(settings.DATA_RAW_PATH / "train_FD001.txt")
 test_path  = str(settings.DATA_RAW_PATH / "test_FD001.txt")
 rul_path   = str(settings.DATA_RAW_PATH / "RUL_FD001.txt")
 
-# ── Cargar modelo ya entrenado ───────────────────────────────────────────────
+# Cargar modelo ya entrenado
 print("Cargando modelo entrenado...")
 device = get_device()
 model  = CNN_BiLSTM(n_features=14, seq_len=settings.SEQ_LEN)
@@ -32,7 +32,7 @@ model.load_state_dict(torch.load(
 model.to(device)
 model.eval()
 
-# ── Predicciones sobre test set ──────────────────────────────────────────────
+# Predicciones sobre test set
 print("Generando predicciones sobre test set...")
 train_df, test_df, _ = preprocess(train_path, test_path)
 last_cycles = get_last_cycle_rul(test_df, rul_path)
@@ -64,7 +64,7 @@ rmse   = float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
 mae    = float(np.mean(np.abs(y_true - y_pred)))
 print(f"RMSE: {rmse:.2f} | MAE: {mae:.2f}")
 
-# ── Grafica 1: Scatter predicho vs real ─────────────────────────────────────
+#Grafica 1: Scatter predicho vs real
 fig, ax = plt.subplots(figsize=(8, 8))
 ax.scatter(y_true, y_pred, alpha=0.5, s=25, color="#2563EB", label="Unidades test")
 lim = max(y_true.max(), y_pred.max()) + 10
@@ -79,7 +79,7 @@ fig.savefig(PLOTS_DIR / "rul_scatter.png", dpi=150)
 print(f"Guardado: rul_scatter.png")
 plt.close()
 
-# ── Grafica 2: Error por unidad ──────────────────────────────────────────────
+#Grafica 2: Error por unidad
 errors = y_pred - y_true
 fig, ax = plt.subplots(figsize=(14, 4))
 colors = ["#DC2626" if e > 0 else "#2563EB" for e in errors]
@@ -94,7 +94,7 @@ fig.savefig(PLOTS_DIR / "error_by_unit.png", dpi=150)
 print(f"Guardado: error_by_unit.png")
 plt.close()
 
-# ── Grafica 3: Prediccion de una unidad a lo largo del tiempo ───────────────
+#Grafica 3: Prediccion de una unidad a lo largo del tiempo
 print("Generando grafica de degradacion temporal...")
 sample_unit = test_df["unit_id"].unique()[0]
 unit_data_full = test_df[test_df["unit_id"] == sample_unit][FEATURE_SENSORS].values

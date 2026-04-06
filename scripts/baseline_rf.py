@@ -28,7 +28,6 @@ train_df = calculate_rul(train_df)
 X_train, y_train = build_windows(train_df, seq_len=settings.SEQ_LEN)
 
 # 3. Aplanar ventanas: RF no entiende secuencias, solo vectores
-#    (batch, seq_len, features) -> (batch, seq_len * features)
 n_train = len(X_train)
 X_train_flat = X_train.reshape(n_train, -1)
 print(f"Train: {X_train_flat.shape} | Labels: {y_train.shape}")

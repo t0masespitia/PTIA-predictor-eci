@@ -4,7 +4,7 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-# RUL máximo (clip): técnica estándar en literatura C-MAPSS
+# RUL máximo
 RUL_MAX = 125
 
 
