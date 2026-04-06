@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 def compute_metrics(
     train_path: str = None,
     test_path: str = None,
-    rul_path: str = None,
+    rul_path:  str = None,
 ) -> dict:
     train_path = train_path or str(settings.DATA_RAW_PATH / "train_FD001.txt")
     test_path  = test_path  or str(settings.DATA_RAW_PATH / "test_FD001.txt")
@@ -23,7 +23,8 @@ def compute_metrics(
 
     seq_len = settings.SEQ_LEN
 
-    train_df, test_df, scaler = preprocess(train_path, test_path)
+    # Preprocesamiento con el mismo scaler de entrenamiento
+    train_df, test_df, _ = preprocess(train_path, test_path)
     last_cycles = get_last_cycle_rul(test_df, rul_path)
 
     model  = _load_model()
@@ -38,7 +39,7 @@ def compute_metrics(
         unit_data = test_df[test_df["unit_id"] == unit_id][FEATURE_SENSORS].values
 
         if len(unit_data) < seq_len:
-            pad      = seq_len - len(unit_data)
+            pad       = seq_len - len(unit_data)
             unit_data = np.vstack([
                 np.tile(unit_data[0], (pad, 1)),
                 unit_data
@@ -62,7 +63,7 @@ def compute_metrics(
     logger.info(f"Evaluacion -> RMSE: {rmse:.2f}, MAE: {mae:.2f}")
 
     return {
-        "rmse":               round(rmse, 2),
-        "mae":                round(mae, 2),
-        "n_units_evaluated":  len(y_true),
+        "rmse":              round(rmse, 2),
+        "mae":               round(mae, 2),
+        "n_units_evaluated": len(y_true),
     }

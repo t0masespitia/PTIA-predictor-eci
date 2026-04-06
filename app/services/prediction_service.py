@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import torch
 from pathlib import Path
@@ -9,8 +10,25 @@ from app.models.trainer import get_device
 
 logger = get_logger(__name__)
 
-_model = None
+_model  = None
 _device = None
+_scaler = None
+
+
+def _load_scaler():
+    global _scaler
+    if _scaler is not None:
+        return _scaler
+
+    scaler_path = settings.ARTIFACTS_PATH / "scaler.pkl"
+    if not scaler_path.exists():
+        raise FileNotFoundError(
+            f"No se encontro scaler en {scaler_path}. Ejecuta /train primero."
+        )
+    with open(scaler_path, "rb") as f:
+        _scaler = pickle.load(f)
+    logger.info(f"Scaler cargado desde {scaler_path}")
+    return _scaler
 
 
 def _load_model(n_features: int = 14, seq_len: int = None) -> CNN_BiLSTM:
@@ -20,7 +38,6 @@ def _load_model(n_features: int = 14, seq_len: int = None) -> CNN_BiLSTM:
         return _model
 
     model_path = settings.ARTIFACTS_PATH / "best_model.pt"
-
     if not model_path.exists():
         raise FileNotFoundError(
             f"No se encontro modelo en {model_path}. Ejecuta /train primero."
@@ -38,11 +55,19 @@ def _load_model(n_features: int = 14, seq_len: int = None) -> CNN_BiLSTM:
 
 
 def predict(window: list) -> float:
+    """
+    Recibe ventana SIN normalizar (valores crudos de sensores)
+    y retorna el RUL predicho en ciclos.
+    """
+    scaler = _load_scaler()
     model  = _load_model()
     device = _device
 
-    x = torch.tensor(window, dtype=torch.float32)
-    x = x.unsqueeze(0).to(device)
+    # Normalizar con el scaler del entrenamiento
+    window_np = np.array(window, dtype=np.float32)   # (seq_len, 14)
+    window_np = scaler.transform(window_np)           # normalizado
+
+    x = torch.tensor(window_np, dtype=torch.float32).unsqueeze(0).to(device)
 
     with torch.no_grad():
         rul_pred = model(x).item()
@@ -52,7 +77,23 @@ def predict(window: list) -> float:
     return rul_pred
 
 
+def predict_normalized(window: list) -> float:
+    """
+    Recibe ventana YA normalizada (para uso interno / tests).
+    """
+    model  = _load_model()
+    device = _device
+
+    x = torch.tensor(window, dtype=torch.float32).unsqueeze(0).to(device)
+    with torch.no_grad():
+        rul_pred = model(x).item()
+
+    rul_pred = max(0.0, round(rul_pred, 2))
+    return rul_pred
+
+
 def reset_model():
-    global _model
-    _model = None
-    logger.info("Cache del modelo limpiado")
+    global _model, _scaler
+    _model  = None
+    _scaler = None
+    logger.info("Cache del modelo y scaler limpiados")

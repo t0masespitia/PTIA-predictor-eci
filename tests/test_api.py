@@ -2,6 +2,7 @@ import sys
 sys.path.append(".")
 
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from main import app
 
@@ -17,11 +18,13 @@ def test_health():
 
 
 def test_predict_ok():
-    r = client.post("/predict", json={"window": VALID_WINDOW})
-    assert r.status_code == 200
-    body = r.json()
-    assert "rul_predicted" in body
-    assert body["rul_predicted"] >= 0
+    """Mockea el servicio para no depender de artefactos en disco."""
+    with patch("app.api.routes.prediction.predict", return_value=42.5):
+        r = client.post("/predict", json={"window": VALID_WINDOW})
+        assert r.status_code == 200
+        body = r.json()
+        assert "rul_predicted" in body
+        assert body["rul_predicted"] == 42.5
 
 
 def test_predict_wrong_features():
