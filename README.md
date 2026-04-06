@@ -1,4 +1,4 @@
-# PTIA-RUL-Predictor ✈️
+# PTIA-RUL-Predictor
 
 **Predicción de Vida Útil Restante (RUL) en motores de avión usando Deep Learning**
 
