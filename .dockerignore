@@ -1,0 +1,10 @@
+venv311/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.env
+notebooks/
+scripts/
+.git/

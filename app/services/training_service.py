@@ -1,0 +1,64 @@
+import numpy as np
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+
+from app.core.config import settings
+from app.core.logging import get_logger
+from app.data.preprocessor import preprocess
+from app.data.rul_calculator import calculate_rul
+from app.data.window_builder import build_windows, RULDataset
+from app.models.cnn_bilstm import CNN_BiLSTM
+from app.models.trainer import train_model
+
+logger = get_logger(__name__)
+
+
+def run_training(
+    train_path: str = None,
+    test_path: str = None,
+    epochs: int = None,
+    seq_len: int = None,
+    batch_size: int = None,
+) -> dict:
+    train_path = train_path or str(settings.DATA_RAW_PATH / "train_FD001.txt")
+    test_path  = test_path  or str(settings.DATA_RAW_PATH / "test_FD001.txt")
+    epochs     = epochs     or settings.EPOCHS
+    seq_len    = seq_len    or settings.SEQ_LEN
+    batch_size = batch_size or settings.BATCH_SIZE
+
+    logger.info("=== Iniciando pipeline de entrenamiento ===")
+
+    train_df, _, _ = preprocess(train_path, test_path)
+    train_df = calculate_rul(train_df)
+    X, y = build_windows(train_df, seq_len=seq_len)
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+    logger.info(f"Split -> train: {len(X_train)}, val: {len(X_val)}")
+
+    train_loader = DataLoader(
+        RULDataset(X_train, y_train), batch_size=batch_size, shuffle=True
+    )
+    val_loader = DataLoader(
+        RULDataset(X_val, y_val), batch_size=batch_size, shuffle=False
+    )
+
+    n_features = X.shape[2]
+    model = CNN_BiLSTM(n_features=n_features, seq_len=seq_len)
+
+    history = train_model(
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        epochs=epochs,
+    )
+
+    logger.info("=== Entrenamiento finalizado ===")
+    return {
+        "epochs_run": epochs,
+        "final_train_loss": round(history["train_loss"][-1], 4),
+        "final_val_loss":   round(history["val_loss"][-1], 4),
+        "best_model_path":  str(settings.ARTIFACTS_PATH / "best_model.pt"),
+    }
