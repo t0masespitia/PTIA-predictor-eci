@@ -81,6 +81,10 @@ Swagger en `http://127.0.0.1:8000/docs`.
 pytest tests/ -v
 ```
 
+## Frontend
+
+Ver `frontend/README.md`.
+
 ### Instalacion
 
 ```bash

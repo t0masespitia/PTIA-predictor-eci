@@ -12,6 +12,26 @@ from app.models.trainer import get_device
 
 logger = get_logger(__name__)
 
+FEATURE_ORDER = [
+    "altitude",
+    "mach_number",
+    "throttle_resolver_angle",
+    "lpc_outlet_temperature",
+    "hpc_outlet_temperature",
+    "lpt_outlet_temperature",
+    "hpc_outlet_pressure",
+    "physical_fan_speed",
+    "physical_core_speed",
+    "hpc_outlet_static_pressure",
+    "fuel_flow_ratio_ps30",
+    "corrected_fan_speed",
+    "corrected_core_speed",
+    "bypass_ratio",
+    "bleed_enthalpy",
+    "hpc_cooling_air_flow",
+    "lpt_cooling_air_flow",
+]
+
 
 class ModelService:
     def __init__(self, model_path: Path, scaler_path: Path, seq_len: int):
@@ -47,10 +67,7 @@ class ModelService:
 
     @staticmethod
     def _sequence_to_array(sequence: list[SensorReading]) -> np.ndarray:
-        rows = []
-        for reading in sequence:
-            dumped = reading.model_dump()
-            rows.append([dumped[field] for field in FEATURES])
+        rows = [[getattr(reading, field) for field in FEATURE_ORDER] for reading in sequence]
         return np.array(rows, dtype=np.float32)
 
     def transform_window(self, window: np.ndarray) -> np.ndarray:

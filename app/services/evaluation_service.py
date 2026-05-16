@@ -57,5 +57,5 @@ def compute_metrics(
     return {
         "rmse":              round(rmse, 2),
         "mae":               round(mae, 2),
-        "n_units_evaluated": len(y_true),
+        "units_evaluated":   len(y_true),
     }
