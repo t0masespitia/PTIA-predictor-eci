@@ -7,9 +7,11 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.data.preprocessor import preprocess
+from app.data.preprocessor import FEATURES, preprocess
 from app.data.rul_calculator import calculate_rul, get_last_cycle_rul
-from app.data.window_builder import build_windows, FEATURE_SENSORS
+from app.data.window_builder import build_windows
+from app.services.evaluation_service import compute_metrics
+from app.services.model_service import ModelService
 
 logger = get_logger(__name__)
 
@@ -53,7 +55,7 @@ for _, row in last_cycles.iterrows():
     unit_id  = row["unit_id"]
     rul_true = row["RUL_true"]
 
-    unit_data = test_df[test_df["unit_id"] == unit_id][FEATURE_SENSORS].values
+    unit_data = test_df[test_df["unit_id"] == unit_id][FEATURES].values
 
     if len(unit_data) < settings.SEQ_LEN:
         pad       = settings.SEQ_LEN - len(unit_data)
@@ -85,9 +87,18 @@ print(f"\n=== Comparacion de modelos ===")
 print(f"  {'Modelo':<20} {'RMSE':>8} {'MAE':>8}")
 print(f"  {'-'*38}")
 print(f"  {'Random Forest':<20} {rmse_rf:>8.2f} {mae_rf:>8.2f}")
-print(f"  {'CNN-BiLSTM (nuestro)':<20} {'20.17':>8} {'15.29':>8}")
+cnn_metrics = compute_metrics(
+    ModelService(
+        settings.ARTIFACTS_PATH / "best_model.pt",
+        settings.ARTIFACTS_PATH / "scaler.pkl",
+        settings.SEQ_LEN,
+    ),
+    test_path=test_path,
+    rul_path=rul_path,
+)
+print(f"  {'CNN-BiLSTM (nuestro)':<20} {cnn_metrics['rmse']:>8.2f} {cnn_metrics['mae']:>8.2f}")
 
-mejora_rmse = ((rmse_rf - 20.17) / rmse_rf) * 100
-mejora_mae  = ((mae_rf  - 15.29) / mae_rf)  * 100
+mejora_rmse = ((rmse_rf - cnn_metrics["rmse"]) / rmse_rf) * 100
+mejora_mae  = ((mae_rf  - cnn_metrics["mae"]) / mae_rf)  * 100
 print(f"\n  Mejora RMSE sobre RF: {mejora_rmse:.1f}%")
 print(f"  Mejora MAE  sobre RF: {mejora_mae:.1f}%")

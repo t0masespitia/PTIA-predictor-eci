@@ -4,16 +4,13 @@ import torch
 from torch.utils.data import Dataset
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.data.preprocessor import FEATURES
 
 logger = get_logger(__name__)
 
-FEATURE_SENSORS = [
-    "s2","s3","s4","s7","s8","s9","s11","s12","s13","s14","s15","s17","s20","s21"
-]
-
 
 class RULDataset(Dataset):
-    """Dataset PyTorch: ventanas temporales → valor RUL."""
+    """Dataset PyTorch: ventanas temporales -> valor RUL."""
 
     def __init__(self, X: np.ndarray, y: np.ndarray):
         self.X = torch.tensor(X, dtype=torch.float32)
@@ -41,7 +38,7 @@ def build_windows(df: pd.DataFrame, seq_len: int = None) -> tuple[np.ndarray, np
     X_list, y_list = [], []
 
     for unit_id, group in df.groupby("unit_id"):
-        features = group[FEATURE_SENSORS].values
+        features = group[FEATURES].values
         labels   = group["RUL"].values
 
         n = len(features)
@@ -56,5 +53,5 @@ def build_windows(df: pd.DataFrame, seq_len: int = None) -> tuple[np.ndarray, np
     X = np.array(X_list, dtype=np.float32)
     y = np.array(y_list, dtype=np.float32)
 
-    logger.info(f"Ventanas construidas → X: {X.shape}, y: {y.shape}")
+    logger.info(f"Ventanas construidas -> X: {X.shape}, y: {y.shape}")
     return X, y

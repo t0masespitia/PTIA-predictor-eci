@@ -1,28 +1,37 @@
-from fastapi import APIRouter, HTTPException
-from app.api.schemas import PredictRequest, PredictResponse
-from app.services.prediction_service import predict
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from app.api.dtos import PredictRequest, PredictResponse
 from app.core.logging import get_logger
+from app.repository.base_repository import AbstractPredictionRepository
+from app.repository.sqlite_repository import SqlitePredictionRepository
+from app.services.model_service import ModelService
+from app.services.prediction_service import predict_and_store
 
 logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.post("/predict", response_model=PredictResponse, summary="Predecir RUL")
-def predict_rul(request: PredictRequest):
-    seq_len   = len(request.window)
-    n_features = len(request.window[0]) if request.window else 0
+def get_model_service(request: Request) -> ModelService:
+    return request.app.state.model_service
 
-    if seq_len < 1:
-        raise HTTPException(status_code=422, detail="La ventana no puede estar vacia")
-    if n_features != 14:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Se esperan 14 features por paso, recibidos: {n_features}"
-        )
 
+def get_repo(request: Request) -> AbstractPredictionRepository:
+    return SqlitePredictionRepository(request.app.state.session_factory)
+
+
+@router.post(
+    "/predict",
+    response_model=PredictResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Predecir RUL",
+)
+def predict_rul(
+    body: PredictRequest,
+    model: ModelService = Depends(get_model_service),
+    repo: AbstractPredictionRepository = Depends(get_repo),
+):
     try:
-        rul = predict(request.window)
-        return PredictResponse(rul_predicted=rul)
+        return predict_and_store(body, model, repo)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

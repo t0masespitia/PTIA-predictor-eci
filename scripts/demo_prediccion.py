@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.data.preprocessor import preprocess
 from app.data.rul_calculator import get_last_cycle_rul
-from app.data.window_builder import FEATURE_SENSORS
+from app.data.preprocessor import FEATURES
 from app.models.cnn_bilstm import CNN_BiLSTM
 from app.models.trainer import get_device
 
@@ -22,7 +22,7 @@ print("=== Demo: Prediccion RUL en vivo ===\n")
 
 # Cargar modelo
 device = get_device()
-model  = CNN_BiLSTM(n_features=14, seq_len=settings.SEQ_LEN)
+model  = CNN_BiLSTM(n_features=len(FEATURES), seq_len=settings.SEQ_LEN)
 model.load_state_dict(torch.load(
     settings.ARTIFACTS_PATH / "best_model.pt", map_location=device
 ))
@@ -43,7 +43,7 @@ for _, row in last_cycles.head(10).iterrows():
     unit_id  = int(row["unit_id"])
     rul_true = int(row["RUL_true"])
 
-    unit_data = test_df[test_df["unit_id"] == unit_id][FEATURE_SENSORS].values
+    unit_data = test_df[test_df["unit_id"] == unit_id][FEATURES].values
 
     if len(unit_data) < seq_len:
         pad       = seq_len - len(unit_data)

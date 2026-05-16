@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     DATA_RAW_PATH: Path = Path("data/raw")
     DATA_PROCESSED_PATH: Path = Path("data/processed")
     ARTIFACTS_PATH: Path = Path("artifacts/models")
+    DATABASE_URL: str = "sqlite:///./artifacts/predictions.db"
 
     SEQ_LEN: int = 30
     BATCH_SIZE: int = 64

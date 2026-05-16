@@ -16,25 +16,32 @@ COLUMNS = [
 # Sensores que no aportan varianza útil en FD001 (constantes o casi constantes)
 DROP_SENSORS = ["s1","s5","s6","s10","s16","s18","s19"]
 
-# Sensores que sí usamos como features
+# Features usadas por el modelo reentrenado
+OP_SETTINGS = ["op1", "op2", "op3"]
 FEATURE_SENSORS = [
     "s2","s3","s4","s7","s8","s9","s11","s12","s13","s14","s15","s17","s20","s21"
 ]
+FEATURES = OP_SETTINGS + FEATURE_SENSORS
 
 
 def load_raw(filepath: str) -> pd.DataFrame:
     """Carga un archivo .txt de C-MAPSS sin encabezado."""
     df = pd.read_csv(filepath, sep=r"\s+", header=None, names=COLUMNS)
-    logger.info(f"Cargado {filepath} → {df.shape[0]} filas, {df.shape[1]} columnas")
+    logger.info(f"Cargado {filepath} -> {df.shape[0]} filas, {df.shape[1]} columnas")
     return df
 
 
 def drop_irrelevant(df: pd.DataFrame) -> pd.DataFrame:
-    """Elimina sensores sin varianza y columnas operacionales."""
-    cols_to_drop = DROP_SENSORS + ["op1", "op2", "op3"]
+    """Elimina sensores sin varianza útil para FD001."""
+    cols_to_drop = DROP_SENSORS
     df = df.drop(columns=cols_to_drop)
     logger.info(f"Columnas eliminadas: {cols_to_drop}")
     return df
+
+
+def load_and_clean(filepath: str) -> pd.DataFrame:
+    """Carga un archivo .txt de C-MAPSS y elimina columnas irrelevantes."""
+    return drop_irrelevant(load_raw(filepath))
 
 
 def normalize(train_df: pd.DataFrame, test_df: pd.DataFrame):
@@ -43,22 +50,19 @@ def normalize(train_df: pd.DataFrame, test_df: pd.DataFrame):
     Retorna (train_norm, test_norm, scaler).
     """
     scaler = MinMaxScaler()
-    train_df[FEATURE_SENSORS] = scaler.fit_transform(train_df[FEATURE_SENSORS])
-    test_df[FEATURE_SENSORS]  = scaler.transform(test_df[FEATURE_SENSORS])
+    train_df[FEATURES] = scaler.fit_transform(train_df[FEATURES])
+    test_df[FEATURES]  = scaler.transform(test_df[FEATURES])
     logger.info("Normalización MinMax aplicada")
     return train_df, test_df, scaler
 
 
 def preprocess(train_path: str, test_path: str):
     """
-    Pipeline completo: carga → limpieza → normalización.
+    Pipeline completo: carga -> limpieza -> normalizacion.
     Retorna (train_df, test_df, scaler).
     """
-    train_df = load_raw(train_path)
-    test_df  = load_raw(test_path)
-
-    train_df = drop_irrelevant(train_df)
-    test_df  = drop_irrelevant(test_df)
+    train_df = load_and_clean(train_path)
+    test_df  = load_and_clean(test_path)
 
     train_df, test_df, scaler = normalize(train_df, test_df)
     return train_df, test_df, scaler

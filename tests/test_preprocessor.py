@@ -4,7 +4,7 @@ sys.path.append(".")
 import pytest
 import pandas as pd
 import numpy as np
-from app.data.preprocessor import load_raw, drop_irrelevant, normalize, FEATURE_SENSORS
+from app.data.preprocessor import FEATURES, OP_SETTINGS, load_raw, drop_irrelevant, load_and_clean, normalize
 from app.data.rul_calculator import calculate_rul
 from app.data.window_builder import build_windows
 
@@ -22,8 +22,15 @@ def test_drop_irrelevant_removes_columns():
     df = load_raw(TRAIN_PATH)
     df = drop_irrelevant(df)
     assert "s1" not in df.columns
-    assert "op1" not in df.columns
-    assert all(s in df.columns for s in FEATURE_SENSORS)
+    assert all(op in df.columns for op in OP_SETTINGS)
+    assert all(feature in df.columns for feature in FEATURES)
+
+
+def test_load_and_clean_removes_columns():
+    df = load_and_clean(TRAIN_PATH)
+    assert "s1" not in df.columns
+    assert all(op in df.columns for op in OP_SETTINGS)
+    assert all(feature in df.columns for feature in FEATURES)
 
 
 def test_normalize_range():
@@ -32,7 +39,7 @@ def test_normalize_range():
     train_df = drop_irrelevant(train_df)
     test_df  = drop_irrelevant(test_df)
     train_df, _, _ = normalize(train_df, test_df)
-    for col in FEATURE_SENSORS:
+    for col in FEATURES:
         assert train_df[col].min() >= -0.01
         assert train_df[col].max() <= 1.01
 
@@ -54,5 +61,5 @@ def test_window_shapes():
     X, y = build_windows(train_df, seq_len=30)
     assert X.ndim == 3
     assert X.shape[1] == 30
-    assert X.shape[2] == len(FEATURE_SENSORS)
+    assert X.shape[2] == len(FEATURES)
     assert len(X) == len(y)

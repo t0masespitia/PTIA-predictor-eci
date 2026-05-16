@@ -9,9 +9,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from app.core.config import settings
-from app.data.preprocessor import preprocess
+from app.data.preprocessor import FEATURES, preprocess
 from app.data.rul_calculator import get_last_cycle_rul
-from app.data.window_builder import FEATURE_SENSORS
 from app.models.cnn_bilstm import CNN_BiLSTM
 from app.models.trainer import get_device
 
@@ -25,7 +24,7 @@ rul_path   = str(settings.DATA_RAW_PATH / "RUL_FD001.txt")
 # Cargar modelo ya entrenado
 print("Cargando modelo entrenado...")
 device = get_device()
-model  = CNN_BiLSTM(n_features=14, seq_len=settings.SEQ_LEN)
+model  = CNN_BiLSTM(n_features=len(FEATURES), seq_len=settings.SEQ_LEN)
 model.load_state_dict(torch.load(
     settings.ARTIFACTS_PATH / "best_model.pt", map_location=device
 ))
@@ -44,7 +43,7 @@ for _, row in last_cycles.iterrows():
     unit_id  = row["unit_id"]
     rul_true = row["RUL_true"]
 
-    unit_data = test_df[test_df["unit_id"] == unit_id][FEATURE_SENSORS].values
+    unit_data = test_df[test_df["unit_id"] == unit_id][FEATURES].values
     if len(unit_data) < seq_len:
         pad       = seq_len - len(unit_data)
         unit_data = np.vstack([np.tile(unit_data[0], (pad, 1)), unit_data])
@@ -97,7 +96,7 @@ plt.close()
 #Grafica 3: Prediccion de una unidad a lo largo del tiempo
 print("Generando grafica de degradacion temporal...")
 sample_unit = test_df["unit_id"].unique()[0]
-unit_data_full = test_df[test_df["unit_id"] == sample_unit][FEATURE_SENSORS].values
+unit_data_full = test_df[test_df["unit_id"] == sample_unit][FEATURES].values
 n_cycles = len(unit_data_full)
 
 preds_over_time = []

@@ -21,6 +21,7 @@ def train_model(
     epochs: int = None,
     lr: float = None,
     save_path: Path = None,
+    early_stopping_patience: int = 15,
 ) -> dict:
     epochs    = epochs   or settings.EPOCHS
     lr        = lr       or settings.LEARNING_RATE
@@ -39,6 +40,8 @@ def train_model(
 
     history   = {"train_loss": [], "val_loss": []}
     best_loss = float("inf")
+    best_state = None
+    epochs_without_improvement = 0
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -76,11 +79,24 @@ def train_model(
 
         if monitor_loss < best_loss:
             best_loss = monitor_loss
+            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             torch.save(model.state_dict(), save_path)
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
 
         if epoch % 5 == 0 or epoch == 1:
             val_str = f" | val_loss: {val_loss:.4f}" if val_loss else ""
             logger.info(f"Epoca {epoch:03d}/{epochs} | train_loss: {train_loss:.4f}{val_str}")
+
+        if val_loader and epochs_without_improvement >= early_stopping_patience:
+            logger.info(
+                f"Early stopping en epoca {epoch} tras {early_stopping_patience} epocas sin mejora"
+            )
+            break
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
 
     logger.info(f"Entrenamiento completo. Mejor loss: {best_loss:.4f} -> {save_path}")
     return history

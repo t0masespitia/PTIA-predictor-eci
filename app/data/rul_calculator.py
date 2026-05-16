@@ -25,7 +25,7 @@ def calculate_rul(df: pd.DataFrame) -> pd.DataFrame:
     df["RUL"] = df["RUL"].clip(upper=RUL_MAX)
     df = df.drop(columns=["max_cycle"])
 
-    logger.info(f"RUL calculado — min: {df['RUL'].min()}, max: {df['RUL'].max()}")
+    logger.info(f"RUL calculado - min: {df['RUL'].min()}, max: {df['RUL'].max()}")
     return df
 
 

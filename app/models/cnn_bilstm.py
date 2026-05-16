@@ -8,7 +8,7 @@ logger = get_logger(__name__)
 class CNN_BiLSTM(nn.Module):
     def __init__(
         self,
-        n_features: int = 14,
+        n_features: int = 17,
         seq_len: int = 30,
         conv_filters: int = 64,
         kernel_size: int = 3,
@@ -49,7 +49,7 @@ class CNN_BiLSTM(nn.Module):
         )
 
         logger.info(
-            f"CNN_BiLSTM creado — features={n_features}, "
+            f"CNN_BiLSTM creado - features={n_features}, "
             f"conv={conv_filters}, lstm={lstm_hidden}x{lstm_layers}, "
             f"dropout={dropout}"
         )
